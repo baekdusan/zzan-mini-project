@@ -1,6 +1,8 @@
 import UIKit
 import AVFoundation
 import GoogleMobileAds
+import AppTrackingTransparency
+import AdSupport
 
 // 차례대로 짠 소리, 몇 잔인지, 배열 위치가 어딘지, 배경 이미지 변수
 var soundEffect: AVAudioPlayer?
@@ -9,8 +11,8 @@ var countingNum = 0
 var image: UIImage!
 
 // 순서에 맞는 배열(다른 이미지나 소리를 변경할 때에 위 아래에 순서 맞춰서 요소 집어넣어주면 됌)
-var imageArray: [String] = ["glass", "soju", "cocktail", "bottle"]
-var soundArray: [String] = ["zzan", "zzan2", "zzan", "zzan2"]
+var imageArray: [String] = ["soju", "glass", "cocktail", "bottle"]
+var soundArray: [String] = ["zzan2", "zzan", "zzan", "zzan2"]
 
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
  
@@ -51,26 +53,22 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         super.viewDidLoad()
         
         // 광고 관련 메소드
-        bannerView = GADBannerView(adSize: kGADAdSizeSmartBannerPortrait)
+        bannerView = GADBannerView(adSize: GADPortraitAnchoredAdaptiveBannerAdSizeWithWidth(view.frame.width))
         addBannerViewToView(bannerView)
         
         bannerView.adUnitID = "ca-app-pub-9457112413608323/6965792049"
         bannerView.rootViewController = self
-        bannerView.load(GADRequest())
         
         // 배경화면 메소드
         imagePickerController.delegate = self
         
-        // 각 UI 그림자 넣는 함수(간단하게 못하나..)
-        makeShadow(type: refUI)
-        makeShadow(type: backUI)
-        makeShadow(type: zzan)
-        makeShadow(type: resetUI)
-        makeShadow(type: changeUI)
-        makeShadow(type: instaUI)
-        makeLabelShadow(type: sofar)
-        makeLabelShadow(type: cupNumber)
-        makeLabelShadow(type: cup)
+        [refUI, backUI, zzan, resetUI, changeUI, instaUI].forEach {
+            $0?.makeShadow()
+        }
+        
+        [sofar, cupNumber, cup].forEach {
+            $0?.makeShadow()
+        }
         
         // 디폴트 값 불러내기(마신 잔 수, 배경)
         cupnumber = UserDefaults.standard.integer(forKey: "number")
@@ -101,6 +99,11 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             Picture.alpha = 0.8
         }
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        requestIDFA(bannerView)
+    }
 
     // 짠 버튼
     @IBAction func playbtn(_ sender: Any) {
@@ -112,8 +115,12 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300), execute: {self.byArraySound()})
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(800), execute: {self.showAnimation()})
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1200), execute: {self.count()})
-        DispatchQueue.main.asyncAfter(deadline: .now(), execute: {self.prepareAnimation()})
-        DispatchQueue.main.asyncAfter(deadline: .now(), execute: {self.zzanAnimation()})
+        DispatchQueue.main.asyncAfter(
+            deadline: .now(),
+            execute: {
+                self.prepareAnimation()
+                self.zzanAnimation()
+        })
     }
     
     // 리셋 버튼
@@ -122,11 +129,14 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         drinknum.text = "\(cupnumber)"
         UserDefaults.standard.set(cupnumber, forKey: "number")
         
-        UIView.transition(with: drinknum, duration: 0.4,
-                          options: .transitionFlipFromTop,
-                          animations: {
+        UIView.transition(
+            with: drinknum,
+            duration: 0.4,
+            options: .transitionFlipFromTop,
+            animations: {
                             self.drinknum.isHidden = false
-                      })
+            }
+        )
     }
     
     // 잔 바꾸기 버튼
@@ -140,7 +150,11 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     // Info 버튼 -> 이미지 저작권
     @IBAction func refbtn(_ sender: Any) {
-        let alert = UIAlertController(title: "Info", message: "glass, beer icon designed by\nhttps://www.iconfinder.com/dooder\n\ncocktail, soju icon designed by Dusan Baek\n\n'짠! Cheers! developed by Dusan Baek", preferredStyle: .alert)
+        let alert = UIAlertController(
+            title: "Info",
+            message: "glass, beer icon designed by\nhttps://www.iconfinder.com/dooder\n\ncocktail, soju icon designed by Dusan Baek\n\n'짠! Cheers! developed by Dusan Baek",
+            preferredStyle: .alert
+        )
         let cancel = UIAlertAction(title: "Close", style: .cancel, handler: nil)
         alert.addAction(cancel)
         present(alert, animated: true, completion: nil)
@@ -170,7 +184,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
                     UIApplication.shared.open(storyShareURL, options: [:], completionHandler: nil)
                         
             } else {
-                    let alert = UIAlertController(title: "", message: "You need instagram", preferredStyle: .alert)
+                    let alert = UIAlertController(title: "", message: "You need Instagram.", preferredStyle: .alert)
                     let ok = UIAlertAction(title: "OK", style: .default, handler: nil)
                     alert.addAction(ok)
                     self.present(alert, animated: true, completion: nil)
@@ -197,6 +211,20 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
 //함수 모음
+    
+    // 앱 추척 허용/거부 팝업
+    
+    func requestIDFA(_ bannerView: GADBannerView) {
+        if #available(iOS 14, *) {
+            ATTrackingManager.requestTrackingAuthorization(completionHandler: { status in
+                bannerView.load(GADRequest())
+                print("성공")
+            })
+        } else {
+            // Fallback on earlier versions
+        }
+        
+    }
     
     // 소리나오게 하는 함수
     func playAudio(type: String) {
@@ -317,22 +345,6 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         }
     }
     
-    // 버튼 그림자
-    func makeShadow(type: UIButton) {
-        type.layer.shadowColor = UIColor.white.cgColor
-        type.layer.shadowOpacity = 1.0
-        type.layer.shadowOffset = CGSize.zero
-        type.layer.shadowRadius = 6
-    }
-
-    // 라벨 그림자
-    func makeLabelShadow(type: UILabel) {
-        type.layer.shadowColor = UIColor.white.cgColor
-        type.layer.shadowOpacity = 1.0
-        type.layer.shadowOffset = CGSize.zero
-        type.layer.shadowRadius = 6
-    }
-    
     // 광고 함수 (광고 위치 바꾸는 방법 고민해보기)
     func addBannerViewToView(_ bannerView: GADBannerView) {
         bannerView.translatesAutoresizingMaskIntoConstraints = false
@@ -369,8 +381,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     // 이미지 골라서 배경으로 넘기는 메소드
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        UserDefaults.standard.set(cupnumber, forKey: "number")
-        
+
         if let image = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
             Picture.image = image
             Picture.alpha = 0.8
@@ -394,5 +405,39 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         changeUI.alpha = CGFloat(type)
         refUI.alpha = CGFloat(type)
         backUI.alpha = CGFloat(type)
+    }
+    
+    func fixOrientation(image: UIImage) -> UIImage {
+        if image.imageOrientation == .up {
+            return image
+        }
+        
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        let rect = CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
+        image.draw(in: rect)
+        
+        let normalizedImage =
+        UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage
+    }
+}
+
+extension UIButton {
+    func makeShadow() {
+        self.layer.shadowColor = UIColor.white.cgColor
+        self.layer.shadowOpacity = 1.0
+        self.layer.shadowOffset = CGSize.zero
+        self.layer.shadowRadius = 6
+    }
+}
+
+extension UILabel {
+    func makeShadow() {
+        self.layer.shadowColor = UIColor.white.cgColor
+        self.layer.shadowOpacity = 1.0
+        self.layer.shadowOffset = CGSize.zero
+        self.layer.shadowRadius = 6
     }
 }
