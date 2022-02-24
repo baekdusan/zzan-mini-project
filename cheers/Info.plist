@@ -33,7 +33,7 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>You can change the app's background using the camera. This app does not collect or share data arbitrarily.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
+	<key>NSPhotoLibraryUsageDescription</key>
 	<string>You can change the background of the app by using the pictures in the album. This app does not collect or share data arbitrarily.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This identifier will be used to deliver personalized ads to you.</string>

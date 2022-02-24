@@ -3,19 +3,20 @@ import AVFoundation
 import GoogleMobileAds
 import AppTrackingTransparency
 import AdSupport
-
-// 차례대로 짠 소리, 몇 잔인지, 배열 위치가 어딘지, 배경 이미지 변수
-var soundEffect: AVAudioPlayer?
-var cupnumber = 0
-var countingNum = 0
-var image: UIImage!
-
-// 순서에 맞는 배열(다른 이미지나 소리를 변경할 때에 위 아래에 순서 맞춰서 요소 집어넣어주면 됌)
-var imageArray: [String] = ["soju", "glass", "cocktail", "bottle"]
-var soundArray: [String] = ["zzan2", "zzan", "zzan", "zzan2"]
+import Photos
 
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
  
+    // 차례대로 짠 소리, 몇 잔인지, 배열 위치가 어딘지, 배경 이미지 변수
+    var soundEffect: AVAudioPlayer?
+    var cupnumber = 0
+    var countingNum = 0
+    var image: UIImage!
+
+    // 순서에 맞는 배열(다른 이미지나 소리를 변경할 때에 위 아래에 순서 맞춰서 요소 집어넣어주면 됌)
+    var imageArray: [String] = ["soju", "glass", "cocktail", "bottle"]
+    var soundArray: [String] = ["zzan2", "zzan", "zzan", "zzan2"]
+    
     // 광고 뷰, 배경 컨트롤해주는 메소드
     var bannerView: GADBannerView!
     let imagePickerController = UIImagePickerController()
@@ -369,12 +370,15 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     // 카메라 호출
     func openCamera() {
+        
         self.imagePickerController.sourceType = .camera
         self.present(self.imagePickerController, animated: true, completion: nil)
     }
     
     // 앨범 호출
     func openAlbum() {
+        PHPhotoLibrary.requestAuthorization( { status in })
+        
         self.imagePickerController.sourceType = .photoLibrary
         self.present(self.imagePickerController, animated: true, completion: nil)
     }
